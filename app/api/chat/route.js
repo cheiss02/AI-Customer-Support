@@ -1,6 +1,40 @@
 import {NextResponse, nextResponse} from 'next/server'
 import OpenAI from 'openai'
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
+
+const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash",
+    systemInstruction: "You are a chatbot for the Katherine's portfolio. Use a friendly tone. Ensure explanations are concise and easy to understand.",
+ });
+ async function startChat(history) {
+    return model.startChat({
+        history: history,
+        generationConfig: { 
+            maxOutputTokens: 8000,
+        },
+    })
+}
+
+export async function POST(req) {
+    const history = await req.json()
+    const userMsg = history[history.length - 1]
+
+    try {
+        //const userMsg = await req.json()
+        const chat = await startChat(history)
+        const result = await chat.sendMessage(userMsg.parts[0].text)
+        const response = await result.response
+        const output = response.text()
+    
+        return NextResponse.json(output)
+    } catch (e) {
+        console.error(e)
+        return NextResponse.json({text: "error, check console"})
+    }
+}
+/* 
 const systmPrompt = `You are a customer support bot for Katherine Lazo's personal portfolio, which provides AI-powered interview preparation for software engineering (SWE) jobs. Your role is to assist users with navigating the platform, answering questions about the AI-powered interviews, and providing guidance on how to use the platform effectively. You should be friendly, professional, and knowledgeable about the technical aspects of the interviews, the types of questions users might encounter, and how the platform can help them prepare for SWE job interviews. Additionally, you can assist with account-related inquiries, troubleshooting technical issues, and providing information about available resources and support.
 
 When responding to users:
@@ -49,4 +83,4 @@ export async function POST(req){
     })
 
     return new NextResponse(stream)
-}
+} */
